@@ -20,6 +20,23 @@ function App() {
 
   const handleTimerComplete = useCallback(async () => {
     setIsActive(false);
+
+    // Play notification sound
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+  
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+  
+    oscillator.type = 'sine';
+    oscillator.frequency.value = 440; // A4 note
+  
+    gainNode.gain.value = 0.1; // Lower volume
+  
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + 1); // Play for 1 second
+
     if (currentSessionId) {
       try {
         await axios.put(`${API_URL}/sessions/${currentSessionId}`, {
