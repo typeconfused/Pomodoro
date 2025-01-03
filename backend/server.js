@@ -53,6 +53,56 @@ app.post('/api/sessions', (req, res) => {
   );
 });
 
+// New endpoint: List all sessions
+app.get('/api/sessions', (req, res) => {
+  db.all(
+    `SELECT sessions.*, 
+     COUNT(tasks.id) as task_count,
+     SUM(CASE WHEN tasks.completed = 1 THEN 1 ELSE 0 END) as completed_tasks
+     FROM sessions 
+     LEFT JOIN tasks ON sessions.id = tasks.session_id 
+     GROUP BY sessions.id 
+     ORDER BY sessions.start_time DESC`,
+    [],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(rows);
+    }
+  );
+});
+
+// New endpoint: Delete session by ID
+app.delete('/api/sessions/:id', (req, res) => {
+  const sessionId = req.params.id;
+  
+  // Begin transaction to ensure both operations complete or none do
+  db.serialize(() => {
+    db.run('BEGIN TRANSACTION');
+    
+    // First delete associated tasks
+    db.run('DELETE FROM tasks WHERE session_id = ?', [sessionId], (err) => {
+      if (err) {
+        db.run('ROLLBACK');
+        return res.status(500).json({ error: err.message });
+      }
+      
+      // Then delete the session
+      db.run('DELETE FROM sessions WHERE id = ?', [sessionId], function(err) {
+        if (err) {
+          db.run('ROLLBACK');
+          return res.status(500).json({ error: err.message });
+        }
+        
+        db.run('COMMIT');
+        res.json({ 
+          message: 'Session and associated tasks deleted successfully',
+          changes: this.changes 
+        });
+      });
+    });
+  });
+});
+
 app.post('/api/tasks', (req, res) => {
   const { sessionId, description } = req.body;
   db.run(
@@ -70,6 +120,24 @@ app.get('/api/tasks', (req, res) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(rows);
   });
+});
+
+// New endpoint: Delete task by ID
+app.delete('/api/tasks/:id', (req, res) => {
+  db.run(
+    'DELETE FROM tasks WHERE id = ?',
+    [req.params.id],
+    function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      if (this.changes === 0) {
+        return res.status(404).json({ error: 'Task not found' });
+      }
+      res.json({ 
+        message: 'Task deleted successfully',
+        changes: this.changes 
+      });
+    }
+  );
 });
 
 app.put('/api/tasks/:id', (req, res) => {
