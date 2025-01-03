@@ -1,8 +1,7 @@
+import { API_URL } from './config';
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { PlayIcon, PauseIcon, StopIcon } from '@heroicons/react/24/solid';
-
-const API_URL = 'http://localhost:3001/api';
 
 function App() {
   const [time, setTime] = useState(25 * 60);
