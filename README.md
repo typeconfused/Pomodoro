@@ -82,7 +82,7 @@ $ curl -X GET http://localhost:3001/api/tasks | jq
 ]
 ```
 
-### Update task completion status
+### Update task completion status (replace {id} with actual task ID)
 
 ```bash
 $ curl -X PUT http://localhost:3001/api/tasks/{id} \
