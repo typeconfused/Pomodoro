@@ -44,7 +44,7 @@ $ curl -X GET http://localhost:3001/api/sessions | jq
 ### Delete a session (replace {id} with actual session ID)
 
 ```bash
-$ curl -X DELETE http://localhost:3001/api/sessions/2 | jq
+$ curl -X DELETE http://localhost:3001/api/sessions/{id} | jq
 {
   "message": "Session and associated tasks deleted successfully",
   "changes": 1
@@ -96,7 +96,7 @@ $ curl -X PUT http://localhost:3001/api/tasks/{id} \
 ### Delete a task (replace {id} with actual task ID)
 
 ```bash
-$ curl -X DELETE http://localhost:3001/api/tasks/14 | jq
+$ curl -X DELETE http://localhost:3001/api/tasks/{id} | jq
 {
   "message": "Task deleted successfully",
   "changes": 1
