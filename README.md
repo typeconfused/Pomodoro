@@ -103,3 +103,39 @@ $ curl -X DELETE http://localhost:3001/api/tasks/{id} | jq
 }
 ```
 
+## Docker Image
+
+1. Build the Docker image                                                                                                                                                                                                                           
+
+```bash
+# Make sure you’re in the Pomodoro folder
+cd ./Pomodoro
+# Build the image and tag it (e.g., “pomodoro-app”)
+docker build -t pomodoro-app .
+```
+
+2. Run the container
+
+```bash
+# Run it in detached mode and map the ports the app uses
+docker run -d \
+  -p 3000:3000 \   # Frontend (served on port 3000)
+  -p 3001:3001 \   # Backend API (served on port 3001)
+  --name pomodoro-app \
+  pomodoro-app
+```
+
+3. Verify it’s running
+
+```bash
+docker ps          # Should list the “pomodoro-app” container
+docker logs pomodoro-app  # Shows the startup script output
+```
+
+### Quick notes
+
+- The `startup-script.sh` inside the image will install dependencies and launch both the frontend (React) and the backend (Node) automatically.
+- If you need to stop the container later: `docker stop pomodoro-app`
+- To view the logs: `docker logs pomodoro-app`
+- To restart after stopping: `docker start pomodoro-app`
+

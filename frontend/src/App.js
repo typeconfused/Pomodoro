@@ -4,7 +4,9 @@ import axios from 'axios';
 import { PlayIcon, PauseIcon, StopIcon } from '@heroicons/react/24/solid';
 
 function App() {
-  const [time, setTime] = useState(25 * 60);
+  // State declarations – order matters to avoid TDZ errors
+  const [pomodoroLength, setPomodoroLength] = useState(25);
+  const [time, setTime] = useState(pomodoroLength * 60);
   const [isActive, setIsActive] = useState(false);
   const [type, setType] = useState('pomodoro');
   const [tasks, setTasks] = useState([]);
@@ -17,6 +19,11 @@ function App() {
     longBreak: 15 * 60,
   };
 
+  // Keep the timer seconds in sync when pomodoroLength changes
+  useEffect(() => {
+    setTime(pomodoroLength * 60);
+  }, [pomodoroLength]);
+
   const handleTimerComplete = useCallback(async () => {
     setIsActive(false);
 
@@ -24,15 +31,15 @@ function App() {
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
-  
+
     oscillator.connect(gainNode);
     gainNode.connect(audioContext.destination);
-  
+
     oscillator.type = 'sine';
     oscillator.frequency.value = 440; // A4 note
-  
+
     gainNode.gain.value = 0.1; // Lower volume
-  
+
     oscillator.start();
     oscillator.stop(audioContext.currentTime + 1); // Play for 1 second
 
@@ -75,8 +82,9 @@ function App() {
   const toggleTimer = async () => {
     if (!isActive && !currentSessionId) {
       try {
+        const sessionDuration = type === 'pomodoro' ? pomodoroLength * 60 : times[type];
         const response = await axios.post(`${API_URL}/sessions`, {
-          duration: times[type],
+          duration: sessionDuration,
           type,
         });
         setCurrentSessionId(response.data.id);
@@ -90,21 +98,41 @@ function App() {
   const resetTimer = () => {
     setIsActive(false);
     setTime(times[type]);
-    setCurrentSessionId(null);
   };
 
   const addTask = async (e) => {
     e.preventDefault();
-    if (!newTask.trim()) return;
+
+    if (!newTask.trim()) {
+      alert('newTask is empty or whitespace');
+      return;
+    }
+
+    // Ensure we have a session
+    if (!currentSessionId) {
+      try {
+        const sessionResponse = await axios.post(`${API_URL}/sessions`, {
+          duration: pomodoroLength * 60,
+          type: 'pomodoro',
+        });
+        setCurrentSessionId(sessionResponse.data.id);
+      } catch (error) {
+        alert('Error creating session: ' + error.message);
+        console.error('Error creating session:', error);
+        return;
+      }
+    }
 
     try {
-      await axios.post(`${API_URL}/tasks`, {
+      const taskResponse = await axios.post(`${API_URL}/tasks`, {
         sessionId: currentSessionId,
         description: newTask,
       });
+      alert('Task added successfully');
       setNewTask('');
       fetchTasks();
     } catch (error) {
+      alert('Error adding task: ' + error.message);
       console.error('Error adding task:', error);
     }
   };
@@ -153,6 +181,18 @@ function App() {
                   >
                     Long Break
                   </button>
+                </div>
+
+                {/* Custom Pomodoro length input */}
+                <div className="mb-4">
+                  <label className="mr-2">Pomodoro length (minutes):</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={pomodoroLength}
+                    onChange={(e) => setPomodoroLength(parseInt(e.target.value, 10))}
+                    className="border rounded px-2 py-1"
+                  />
                 </div>
 
                 <div className="text-center">
